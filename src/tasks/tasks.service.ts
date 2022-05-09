@@ -5,6 +5,7 @@ import { GetTasksFilterDTO } from './DTOs/get-tasks-filter.dto';
 import { TasksRepository } from './tasks.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from './task.entity';
+import { User } from 'src/auth/user.entity';
 
 @Injectable()
 export class TasksService {
@@ -12,12 +13,12 @@ export class TasksService {
     @InjectRepository(TasksRepository) private tasksRepo: TasksRepository,
   ) {}
 
-  public getTasks(filterDto: GetTasksFilterDTO): Promise<Task[]> {
-    return this.tasksRepo.getTasks(filterDto);
+  public getTasks(filterDto: GetTasksFilterDTO, user: User): Promise<Task[]> {
+    return this.tasksRepo.getTasks(filterDto, user);
   }
 
-  public async getTaskById(id: string): Promise<Task> {
-    const task = await this.tasksRepo.findOne(id);
+  public async getTaskById(id: string, user: User): Promise<Task> {
+    const task = await this.tasksRepo.getTaskById(id, user);
 
     if (!task) {
       throw new NotFoundException(`Task with ID '${id}' could not be found`);
@@ -25,12 +26,12 @@ export class TasksService {
     return task;
   }
 
-  public createTask(createTaskDto: CreateTaskDTO): Promise<Task> {
-    return this.tasksRepo.createTask(createTaskDto);
+  public createTask(createTaskDto: CreateTaskDTO, user: User): Promise<Task> {
+    return this.tasksRepo.createTask(createTaskDto, user);
   }
 
-  public async deleteTaskById(id: string): Promise<void> {
-    const result = await this.tasksRepo.delete(id);
+  public async deleteTaskById(id: string, user: User): Promise<void> {
+    const result = await this.tasksRepo.delete({ id, user });
 
     if (result?.affected === 0) {
       throw new NotFoundException(`Task with ID '${id}' could not be found`);
@@ -40,8 +41,9 @@ export class TasksService {
   public async updateTaskStatusById(
     id: string,
     status: TaskStatus,
+    user: User,
   ): Promise<Task> {
-    const task = await this.getTaskById(id);
+    const task = await this.getTaskById(id, user);
 
     task.status = status;
     return await this.tasksRepo.save(task);
